@@ -1,3 +1,3 @@
 # optionalysis
 
-Coming soon :)
+Coming soon 🤠
