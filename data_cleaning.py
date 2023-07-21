@@ -22,7 +22,7 @@ options_df = options_df.drop(
         "lastPrice",
     ]
 )
-print(options_df)
+# print(options_df)
 
 
 def get_mid_price(contract) -> float:
@@ -41,10 +41,14 @@ for date in calls["expirationDate"].unique():
     filtered = calls[calls["expirationDate"] == date].drop(columns="expirationDate")
     calls_dict[date] = filtered.reset_index(drop=True)
 
-test_df = calls_dict["2023-07-21"]
+resolution = 1  # USD
+
+test_df = calls_dict["2023-07-14"]
 new_df = pd.DataFrame(
     {
-        "strike": np.arange(test_df["strike"].min(), test_df["strike"].max() + 1, 1),
+        "strike": np.arange(
+            test_df["strike"].min(), test_df["strike"].max(), resolution
+        ),
         "price": np.nan,
     }
 )
@@ -52,7 +56,7 @@ merged_df = pd.merge(new_df, test_df, on="strike", how="left").drop(columns="pri
 test_df = merged_df.interpolate(method="cubicspline", order=5).rename(
     columns={"price_y": "price"}
 )
-print(test_df.loc[0:20])
+# print(test_df.loc[0:20])
 
 
 avg_window = 20
@@ -62,27 +66,34 @@ test_df["dC/dK"] = test_df["price"].diff() / test_df["strike"].diff()
 test_df["dC/dK"] = test_df["dC/dK"].rolling(window=avg_window, center=True).mean()
 test_df["ddC/dKK"] = test_df["dC/dK"].diff() / test_df["strike"].diff()
 test_df["ddC/dKK"] = test_df["ddC/dKK"].rolling(window=avg_window, center=True).mean()
-test_df["dC/dK"] = test_df["dC/dK"].clip(lower=-1, upper=0)
-test_df["ddC/dKK"] = test_df["ddC/dKK"].clip(lower=0)
-# print(test_df)
+# test_df["dC/dK"] = test_df["dC/dK"].clip(lower=-1, upper=0)
+# test_df["ddC/dKK"] = test_df["ddC/dKK"].clip(lower=0)
 
-plt.subplot(1, 3, 1)
-plt.scatter(test_df["strike"], test_df["price"])
-plt.xlabel("Strike Price")
-plt.ylabel("Spot Price")
-plt.title("Price")
+max_index = test_df["ddC/dKK"].idxmax()
+print(test_df.loc[max_index, "strike"])
+area = test_df["ddC/dKK"].sum() * resolution
+print(area)
 
-plt.subplot(1, 3, 2)
-plt.scatter(test_df["strike"], test_df["dC/dK"])
-plt.xlabel("Strike Price")
-plt.ylabel("Cumulative Density Function")
-plt.title("CDF")
 
-plt.subplot(1, 3, 3)
-plt.scatter(test_df["strike"], test_df["ddC/dKK"])
-plt.xlabel("Strike Price")
-plt.ylabel("Probability Density Function")
-plt.title("PDF")
+def graphing(test_df: pd.DataFrame) -> None:
+    plt.subplot(1, 3, 1)
+    plt.scatter(test_df["strike"], test_df["price"])
+    plt.xlabel("Strike Price")
+    plt.ylabel("Spot Price")
+    plt.title("Price")
 
-plt.tight_layout()
-plt.show()
+    plt.subplot(1, 3, 2)
+    plt.scatter(test_df["strike"], test_df["dC/dK"])
+    plt.xlabel("Strike Price")
+    plt.ylabel("Cumulative Density Function")
+    plt.title("CDF")
+
+    plt.subplot(1, 3, 3)
+    plt.scatter(test_df["strike"], test_df["ddC/dKK"])
+    plt.xlabel("Strike Price")
+    plt.ylabel("Probability Density Function")
+    plt.title("PDF")
+
+    # plt.suptitle(f"Most likely price = {test_df.loc[max_index, 'strike']}")
+    plt.tight_layout()
+    plt.show()
