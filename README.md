@@ -1,3 +1,5 @@
 # optionalysis
 
-Coming soon 🤠
+Deriving implied probabilities from Black Scholes model
+
+More coming soon 🦧
